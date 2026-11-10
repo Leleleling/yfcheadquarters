@@ -52,15 +52,17 @@ export async function sendMessage(input: {
   conversationKey: string;
   senderId: string;
   content: string | null;
-  type: Message['type'];
-  mediaUrl?: string | null;
+  content_type: Message['content_type'];
+  referenced_task_id?: string | null;
 }) {
-  const { error } = await supabase.from('messages').insert({
+  const payload = {
     conversation_key: input.conversationKey,
     sender_id: input.senderId,
     content: input.content,
-    type: input.type,
-    media_url: input.mediaUrl ?? null,
-  });
+    content_type: input.content_type,
+    ...(input.referenced_task_id ? { referenced_task_id: input.referenced_task_id } : {}),
+  };
+  console.log('[chat] insert payload', payload);
+  const { error } = await supabase.from('messages').insert(payload);
   if (error) throw error;
 }

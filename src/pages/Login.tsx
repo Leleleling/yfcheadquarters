@@ -32,8 +32,8 @@ export default function Login() {
 
   async function handleSubmit() {
     if (!selected) return;
-    if (!/^\d{6}$/.test(pin)) {
-      setError('请输入 6 位 PIN 码');
+    if (!/^[A-Za-z0-9]{6}$/.test(pin)) {
+      setError('请输入 6 位字母或数字 PIN 码');
       return;
     }
     setSubmitting(true);
@@ -91,11 +91,10 @@ export default function Login() {
       >
         <Input
           autoFocus
-          inputMode="numeric"
           maxLength={6}
           placeholder="••••••"
           value={pin}
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+          onChange={(e) => setPin(e.target.value)}
           className="text-center text-2xl tracking-[0.5em]"
         />
         {error && <p className="mt-2 text-sm text-brand">{error}</p>}

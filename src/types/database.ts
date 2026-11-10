@@ -31,7 +31,7 @@ export interface Task {
   id: string;
   title: string;
   type: TaskType;
-  deadline: string;
+  due_at: string;
   status: TaskStatus;
   completed_at: string | null;
   target_group_id: string | null;
@@ -70,8 +70,8 @@ export interface Message {
   conversation_key: string;
   sender_id: string;
   content: string | null;
-  type: MessageType;
-  media_url: string | null;
+  content_type: MessageType;
+  referenced_task_id: string | null;
   created_at: string;
 }
 

@@ -41,7 +41,7 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
     myGroupId: profile.group_id,
   });
   const meta = COLOR_META[color];
-  const isOverdue = task.status === 'todo' && new Date(task.deadline).getTime() < Date.now();
+  const isOverdue = task.status === 'todo' && new Date(task.due_at).getTime() < Date.now();
 
   return (
     <div className="tp-surface overflow-hidden rounded-2xl border shadow-sm transition-shadow hover:shadow-lift">
@@ -73,7 +73,7 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
 
         <div className={`mt-3 flex items-center gap-1.5 text-sm ${isOverdue ? 'text-brand' : 'text-gray-500'}`}>
           <Clock className="h-4 w-4" />
-          {formatDeadline(task.deadline)}
+          {formatDeadline(task.due_at)}
           {isOverdue && <span className="font-medium">· 已逾期</span>}
         </div>
 

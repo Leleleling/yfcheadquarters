@@ -10,7 +10,7 @@ export function useTasks() {
     queryKey: ['tasks'],
     queryFn: async () => {
       const [tasksRes, claimantsRes, reactionsRes, profilesRes] = await Promise.all([
-        supabase.from('tasks').select('*').order('deadline', { ascending: true }),
+        supabase.from('tasks').select('*').order('due_at', { ascending: true }),
         supabase.from('task_claimants').select('*'),
         supabase.from('reactions').select('*'),
         supabase.from('profiles').select('*'),
@@ -82,6 +82,6 @@ export function sortTasks(
     });
     const orderDiff = COLOR_ORDER[ca] - COLOR_ORDER[cb];
     if (orderDiff !== 0) return orderDiff;
-    return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    return new Date(a.due_at).getTime() - new Date(b.due_at).getTime();
   });
 }

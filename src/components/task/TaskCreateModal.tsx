@@ -34,7 +34,7 @@ export function TaskCreateModal({ open, onClose }: { open: boolean; onClose: () 
     const { error } = await supabase.from('tasks').insert({
       title: title.trim(),
       type,
-      deadline: new Date(deadline).toISOString(),
+      due_at: new Date(deadline).toISOString(),
       target_group_id: targetGroup ? targetGroup : null,
       notes: notes.trim() || null,
       created_by: profile.id,

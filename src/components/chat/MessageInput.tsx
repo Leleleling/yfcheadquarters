@@ -2,7 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { Send, Smile, Mic, Paperclip } from 'lucide-react';
 import { sendMessage } from '../../hooks/queries/useChat';
 import { uploadChatMedia } from '../../lib/storage';
-import type { Profile } from '../../types/database';
+import type { Profile, MessageType } from '../../types/database';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { cn } from '../ui/cn';
@@ -21,10 +21,11 @@ export function MessageInput({ conversationKey, me }: { conversationKey: string;
   const chunksRef = useRef<Blob[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function send(content: string | null, type: 'text' | 'emoji' | 'voice' | 'file', mediaUrl?: string | null) {
-    if (!content && !mediaUrl) return;
+  function send(content: string | null, contentType: MessageType, mediaUrl?: string | null) {
+    const payloadContent = mediaUrl ?? content;
+    if (!payloadContent) return;
     setBusy(true);
-    sendMessage({ conversationKey, senderId: me.id, content, type, mediaUrl })
+    sendMessage({ conversationKey, senderId: me.id, content: payloadContent, content_type: contentType })
       .then(() => setText(''))
       .catch((e) => console.error('[chat] 发送失败', e))
       .finally(() => setBusy(false));

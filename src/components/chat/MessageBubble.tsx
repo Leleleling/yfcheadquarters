@@ -1,5 +1,6 @@
 import type { Message, Profile } from '../../types/database';
 import { UserAvatar } from '../common/UserAvatar';
+import { getSignedUrl } from '../../lib/storage';
 import { cn } from '../ui/cn';
 
 interface MessageBubbleProps {
@@ -11,6 +12,16 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, sender, meId }: MessageBubbleProps) {
   const mine = message.sender_id === meId;
 
+  async function handleOpenMedia() {
+    if (!message.content) return;
+    try {
+      const url = await getSignedUrl(message.content);
+      window.open(url, '_blank');
+    } catch (e) {
+      console.error('[chat] 获取签名链接失败', e);
+    }
+  }
+
   return (
     <div className={cn('flex items-end gap-2', mine ? 'flex-row-reverse' : 'flex-row')}>
       {sender && <UserAvatar user={sender} size={30} />}
@@ -20,16 +31,16 @@ export function MessageBubble({ message, sender, meId }: MessageBubbleProps) {
           mine ? 'bg-brand text-white' : 'bg-white text-gray-800',
         )}
       >
-        {message.type === 'text' || message.type === 'emoji' ? (
+        {message.content_type === 'text' || message.content_type === 'emoji' ? (
           <span className="whitespace-pre-wrap break-words">{message.content}</span>
-        ) : message.type === 'voice' ? (
-          <a href={message.media_url ?? '#'} target="_blank" rel="noreferrer" className="underline">
+        ) : message.content_type === 'voice' ? (
+          <button type="button" onClick={handleOpenMedia} className="underline">
             🎤 语音消息
-          </a>
+          </button>
         ) : (
-          <a href={message.media_url ?? '#'} target="_blank" rel="noreferrer" className="underline">
+          <button type="button" onClick={handleOpenMedia} className="underline">
             📎 文件
-          </a>
+          </button>
         )}
       </div>
     </div>

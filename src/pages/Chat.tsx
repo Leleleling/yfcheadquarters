@@ -55,7 +55,8 @@ export default function Chat() {
       conversationKey: activeKey,
       senderId: profile!.id,
       content: `📋 转发任务：${forwardTask.title}`,
-      type: 'text',
+      content_type: 'text',
+      referenced_task_id: forwardId,
     });
     searchParams.delete('forward');
     setSearchParams(searchParams);
