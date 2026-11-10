@@ -35,6 +35,9 @@ export interface Task {
   status: TaskStatus;
   completed_at: string | null;
   target_group_id: string | null;
+  target_user_id: string | null;
+  min_claimants: number | null;
+  max_claimants: number | null;
   notes: string | null;
   created_by: string;
   created_at: string;
@@ -79,6 +82,7 @@ export interface Message {
 export interface TaskWithRelations extends Task {
   claimantIds: string[];
   claimants: Profile[];
+  targetUser: Profile | null;
   reactions: Reaction[];
 }
 

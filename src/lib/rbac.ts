@@ -4,10 +4,11 @@ export function isAdmin(p: Profile | null | undefined): boolean {
   return p?.role === 'L1_admin' || p?.role === 'L0_super';
 }
 
-/** 认领：管理员可认领任意任务；普通用户仅可认领本组任务（或全员可见任务）。 */
+/** 认领：管理员可认领任意任务；指名给某个人时仅本人可认领；否则按组可见性。 */
 export function canClaim(task: TaskWithRelations, me: Profile): boolean {
   if (isAdmin(me)) return true;
   if (task.claimantIds.includes(me.id)) return false;
+  if (task.target_user_id && task.target_user_id !== me.id) return false;
   if (task.target_group_id === null) return true;
   return task.target_group_id === me.group_id;
 }

@@ -51,7 +51,13 @@ export function useTasks() {
         const claimants = claimantIds
           .map((id) => profilesById.get(id))
           .filter((p): p is Profile => !!p);
-        return { ...t, claimantIds, claimants, reactions: reactionsByTask.get(t.id) ?? [] };
+        return {
+          ...t,
+          claimantIds,
+          claimants,
+          targetUser: t.target_user_id ? (profilesById.get(t.target_user_id) ?? null) : null,
+          reactions: reactionsByTask.get(t.id) ?? [],
+        };
       });
 
       return { tasks, profilesById };

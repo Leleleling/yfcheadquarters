@@ -69,6 +69,12 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
           {task.claimants[0]?.talents?.length ? (
             <span className="text-xs text-gray-400">{task.claimants[0].talents.join(' ')}</span>
           ) : null}
+          {task.targetUser && (
+            <span className="text-xs text-gray-500">指派给 {task.targetUser.display_name}</span>
+          )}
+          {task.target_group_id === null && task.target_user_id === null && (
+            <span className="text-xs text-gray-400">· 全员可见</span>
+          )}
         </div>
 
         <div className={`mt-3 flex items-center gap-1.5 text-sm ${isOverdue ? 'text-brand' : 'text-gray-500'}`}>
