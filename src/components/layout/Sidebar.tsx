@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutGrid, MessagesSquare, Bell, Shield, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Logo } from '../common/Logo';
 import { cn } from '../ui/cn';
 
 const NAV_ITEMS = [
@@ -21,9 +22,7 @@ export function Sidebar() {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-black/5 bg-white p-4">
       <div className="mb-6 flex items-center gap-2 px-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">
-          Y
-        </div>
+        <Logo className="h-9 w-9" />
         <span className="text-base font-bold tracking-tight">YFC 任务台</span>
       </div>
       <nav className="flex flex-col gap-1">

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>时光扣 · TimePin</title>
+    <title>YFC 任务台</title>
     <script>
       // 静态托管没有服务端路由重写，深链刷新会落到本页。
       // 暂存原始路径后回到根路径，由 index.html 的恢复脚本还原给 React Router。
@@ -14,15 +14,15 @@
           hash: location.hash
         });
         try {
-          sessionStorage.setItem('timepin:spa-redirect', payload);
+          sessionStorage.setItem('yfc:spa-redirect', payload);
         } catch (error) {
-          console.error('[timepin] Unable to store SPA route', error);
+          console.error('[yfc] Unable to store SPA route', error);
         }
         location.replace('/');
       })();
     </script>
   </head>
   <body>
-    <p style="font-family: system-ui, sans-serif; padding: 24px; color: #6B7280;">正在打开时光扣…</p>
+    <p style="font-family: system-ui, sans-serif; padding: 24px; color: #6B7280;">正在打开 YFC 任务台…</p>
   </body>
 </html>

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import type { Profile } from '../types/database';
 import { UserAvatar } from '../components/common/UserAvatar';
+import { Logo } from '../components/common/Logo';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -51,9 +52,7 @@ export default function Login() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#F9FAFB] px-4">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-2xl font-bold text-white">
-          Y
-        </div>
+        <Logo className="mx-auto mb-3 h-14 w-14" />
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">YFC 任务台</h1>
         <p className="mt-1 text-sm text-gray-500">选择你的名字，输入 PIN 登录</p>
       </div>
