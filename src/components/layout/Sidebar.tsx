@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { LayoutGrid, MessagesSquare, Bell, Shield, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Logo } from '../common/Logo';
+import { isAdmin } from '../../lib/rbac';
 import { cn } from '../ui/cn';
 
 const NAV_ITEMS = [
@@ -13,9 +14,9 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const { profile } = useAuth();
-  const isAdmin = profile?.role === 'L1_admin' || profile?.role === 'L0_super';
+  const showAdminLink = isAdmin(profile);
 
-  const items = isAdmin
+  const items = showAdminLink
     ? [...NAV_ITEMS.slice(0, 3), { to: '/admin', label: '管理面板', icon: Shield }, ...NAV_ITEMS.slice(3)]
     : NAV_ITEMS;
 

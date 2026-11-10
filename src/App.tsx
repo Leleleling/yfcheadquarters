@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { RequireAuth, RequireRole } from './router/guards';
+import { RequireAuth, RequireAdmin } from './router/guards';
 import Login from './pages/Login';
 import TaskWall from './pages/TaskWall';
 import Chat from './pages/Chat';
@@ -28,9 +28,9 @@ export default function App() {
             <Route
               path="/admin"
               element={
-                <RequireRole role="L1_admin">
+                <RequireAdmin>
                   <Admin />
-                </RequireRole>
+                </RequireAdmin>
               }
             />
             <Route path="/settings" element={<Settings />} />
