@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import type { Message } from '../../types/database';
 
@@ -54,6 +54,7 @@ export async function sendMessage(input: {
   content: string | null;
   content_type: Message['content_type'];
   referenced_task_id?: string | null;
+  queryClient?: QueryClient;
 }) {
   const payload = {
     conversation_key: input.conversationKey,
@@ -63,6 +64,12 @@ export async function sendMessage(input: {
     ...(input.referenced_task_id ? { referenced_task_id: input.referenced_task_id } : {}),
   };
   console.log('[chat] insert payload', payload);
-  const { error } = await supabase.from('messages').insert(payload);
+  const { data, error } = await supabase.from('messages').insert(payload).select().single();
   if (error) throw error;
+  // 主动把新消息写入缓存，发送者无需等待 Realtime 即可立即看到
+  input.queryClient?.setQueryData<Message[]>(['messages', input.conversationKey], (old = []) => {
+    const row = data as Message;
+    if (old.some((m) => m.id === row.id)) return old;
+    return [...old, row];
+  });
 }

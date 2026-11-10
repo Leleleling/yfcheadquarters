@@ -1,8 +1,9 @@
 import { useRef, useState, type ChangeEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Send, Smile, Mic, Paperclip } from 'lucide-react';
 import { sendMessage } from '../../hooks/queries/useChat';
 import { uploadChatMedia } from '../../lib/storage';
-import type { Profile, MessageType } from '../../types/database';
+import type { Profile } from '../../types/database';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { cn } from '../ui/cn';
@@ -12,23 +13,49 @@ const QUICK_EMOJIS = ['😀', '😂', '😍', '👍', '🎉', '🔥', '😢', '�
 const MAX_FILE_BYTES = 1024 * 1024; // 1MB
 const MAX_VOICE_MS = 30_000; // 30s
 
+type PendingFile = { path: string; name: string; kind: 'file' | 'voice' };
+
 export function MessageInput({ conversationKey, me }: { conversationKey: string; me: Profile }) {
+  const qc = useQueryClient();
   const [text, setText] = useState('');
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [pendingFile, setPendingFile] = useState<PendingFile | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function send(content: string | null, contentType: MessageType, mediaUrl?: string | null) {
-    const payloadContent = mediaUrl ?? content;
-    if (!payloadContent) return;
+  async function send() {
+    const txt = text.trim();
+    if (!txt && !pendingFile) return;
     setBusy(true);
-    sendMessage({ conversationKey, senderId: me.id, content: payloadContent, content_type: contentType })
-      .then(() => setText(''))
-      .catch((e) => console.error('[chat] 发送失败', e))
-      .finally(() => setBusy(false));
+    try {
+      if (pendingFile) {
+        await sendMessage({
+          conversationKey,
+          senderId: me.id,
+          content: pendingFile.path,
+          content_type: pendingFile.kind,
+          queryClient: qc,
+        });
+      }
+      if (txt) {
+        await sendMessage({
+          conversationKey,
+          senderId: me.id,
+          content: txt,
+          content_type: 'text',
+          queryClient: qc,
+        });
+      }
+      setText('');
+      setPendingFile(null);
+    } catch (e) {
+      console.error('[chat] 发送失败', e);
+    } finally {
+      setBusy(false);
+    }
   }
 
   function startRecording() {
@@ -46,7 +73,7 @@ export function MessageInput({ conversationKey, me }: { conversationKey: string;
           if (blob.size === 0) return;
           setBusy(true);
           uploadChatMedia(new File([blob], 'voice.webm', { type: 'audio/webm' }), conversationKey)
-            .then((url) => send(null, 'voice', url))
+            .then((path) => setPendingFile({ path, name: '语音消息', kind: 'voice' }))
             .catch((e) => console.error('[chat] 语音上传失败', e))
             .finally(() => setBusy(false));
         };
@@ -66,6 +93,7 @@ export function MessageInput({ conversationKey, me }: { conversationKey: string;
 
   function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) {
       alert('文件不能超过 1MB');
@@ -73,14 +101,28 @@ export function MessageInput({ conversationKey, me }: { conversationKey: string;
     }
     setBusy(true);
     uploadChatMedia(file, conversationKey)
-      .then((url) => send(null, 'file', url))
+      .then((path) => setPendingFile({ path, name: file.name, kind: 'file' }))
       .catch((err) => console.error('[chat] 文件上传失败', err))
       .finally(() => setBusy(false));
-    e.target.value = '';
   }
 
   return (
     <div className="border-t border-black/5 bg-white p-3">
+      {pendingFile && (
+        <div className="mb-2 flex items-center gap-2 rounded-xl bg-black/5 px-3 py-2">
+          <span className="text-sm text-gray-700">
+            {pendingFile.kind === 'voice' ? '🎤' : '📎'} {pendingFile.name}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPendingFile(null)}
+            className="ml-auto text-gray-400 hover:text-gray-600"
+            aria-label="移除附件"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {showEmoji && (
         <div className="mb-2 flex gap-1 rounded-xl bg-white p-1 shadow-lift ring-1 ring-black/5">
           {QUICK_EMOJIS.map((em) => (
@@ -136,11 +178,11 @@ export function MessageInput({ conversationKey, me }: { conversationKey: string;
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              send(text.trim() || null, 'text');
+              void send();
             }
           }}
         />
-        <Button disabled={busy || !text.trim()} onClick={() => send(text.trim() || null, 'text')}>
+        <Button disabled={busy || (!text.trim() && !pendingFile)} onClick={() => void send()}>
           <Send className="h-5 w-5" />
         </Button>
       </div>

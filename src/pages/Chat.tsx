@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { buildConversations, TOTAL_GROUP, type Conversation } from '../lib/conversation';
@@ -11,6 +11,7 @@ import type { Profile } from '../types/database';
 
 export default function Chat() {
   const { profile } = useAuth();
+  const qc = useQueryClient();
   const [selected, setSelected] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const forwardId = searchParams.get('forward');
@@ -57,6 +58,7 @@ export default function Chat() {
       content: `📋 转发任务：${forwardTask.title}`,
       content_type: 'text',
       referenced_task_id: forwardId,
+      queryClient: qc,
     });
     searchParams.delete('forward');
     setSearchParams(searchParams);

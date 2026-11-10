@@ -30,7 +30,7 @@ export interface Group {
 export interface Task {
   id: string;
   title: string;
-  type: TaskType;
+  category: TaskType;
   due_at: string;
   status: TaskStatus;
   completed_at: string | null;

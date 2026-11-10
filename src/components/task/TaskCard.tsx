@@ -49,8 +49,8 @@ export function TaskCard({ task }: { task: TaskWithRelations }) {
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-base font-semibold leading-snug text-gray-900">{task.title}</h3>
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_BADGE[task.type]}`}>
-            {task.type}
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_BADGE[task.category]}`}>
+            {task.category}
           </span>
         </div>
 
