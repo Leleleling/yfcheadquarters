@@ -1,6 +1,7 @@
 import type { Message, Profile } from '../../types/database';
 import { UserAvatar } from '../common/UserAvatar';
 import { getSignedUrl } from '../../lib/storage';
+import { formatTime } from '../../lib/format';
 import { cn } from '../ui/cn';
 
 interface MessageBubbleProps {
@@ -42,6 +43,9 @@ export function MessageBubble({ message, sender, meId }: MessageBubbleProps) {
             📎 文件
           </button>
         )}
+        <div className={cn('mt-1 text-right text-[10px]', mine ? 'text-white/70' : 'text-gray-400')}>
+          {formatTime(message.created_at)}
+        </div>
       </div>
     </div>
   );

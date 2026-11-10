@@ -1,133 +1,149 @@
-import { useNavigate } from 'react-router-dom';
-import { Clock, UserPlus, Check, Hourglass, Share2 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { deriveColor, COLOR_META } from '../../lib/deriveColor';
-import { canClaim, canComplete } from '../../lib/rbac';
-import { UserAvatar } from '../common/UserAvatar';
-import { Button } from '../ui/Button';
-import { ReactionBar } from './ReactionBar';
+import { useMemo } from 'react';
+import { deriveColor, COLOR_META, claimantGroupIds } from '../../lib/deriveColor';
+import { canClaim, canComplete, canDelay } from '../../lib/rbac';
 import { useClaimTask, useCompleteTask, useDelayTask } from '../../hooks/queries/useTaskActions';
-import type { TaskWithRelations, TaskType } from '../../types/database';
+import { UserAvatar } from '../common/UserAvatar';
+import { ReactionBar } from './ReactionBar';
+import { renderSimpleMarkdown } from '../../lib/markdown';
+import { daysOverdue, formatDateTime } from '../../lib/format';
+import { cn } from '../ui/cn';
+import type { Profile, TaskWithRelations } from '../../types/database';
 
-const TYPE_BADGE: Record<TaskType, string> = {
-  剪辑: 'bg-purple-100 text-purple-700',
-  配音: 'bg-sky-100 text-sky-700',
-  脚本: 'bg-amber-100 text-amber-700',
-  审核: 'bg-emerald-100 text-emerald-700',
-};
+export function TaskCard({
+  task,
+  me,
+  pinned,
+  onTogglePin,
+}: {
+  task: TaskWithRelations;
+  me: Profile;
+  pinned?: boolean;
+  onTogglePin?: () => void;
+}) {
+  const color = useMemo(
+    () =>
+      deriveColor({
+        claimantIds: task.claimantIds,
+        meId: me.id,
+        claimantGroupIds: claimantGroupIds(task.claimants),
+        myGroupId: me.group_id,
+      }),
+    [task, me],
+  );
 
-function formatDeadline(iso: string): string {
-  return new Date(iso).toLocaleString('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+  const isOverdue = task.status !== 'completed' && new Date(task.due_at).getTime() < Date.now();
+  const overdueDays = daysOverdue(task.due_at);
 
-export function TaskCard({ task }: { task: TaskWithRelations }) {
-  const { profile } = useAuth();
-  const navigate = useNavigate();
   const claim = useClaimTask();
   const complete = useCompleteTask();
   const delay = useDelayTask();
 
-  if (!profile) return null;
-
-  const color = deriveColor({
-    claimantIds: task.claimantIds,
-    meId: profile.id,
-    claimantGroupIds: task.claimants.map((c) => c.group_id ?? '').filter(Boolean),
-    myGroupId: profile.group_id,
-  });
-  const meta = COLOR_META[color];
-  const isOverdue = task.status === 'todo' && new Date(task.due_at).getTime() < Date.now();
+  const iAmClaimant = task.claimantIds.includes(me.id);
+  const canClaimTask = canClaim(task, me);
+  const canCompleteTask = canComplete(task, me);
+  const canDelayTask = canDelay(task, me);
 
   return (
-    <div className="tp-surface overflow-hidden rounded-2xl border shadow-sm transition-shadow hover:shadow-lift">
-      <div className={`h-1.5 w-full ${meta.bar}`} />
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-base font-semibold leading-snug text-gray-900">{task.title}</h3>
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_BADGE[task.category]}`}>
-            {task.category}
-          </span>
-        </div>
-
-        {task.notes && <p className="mt-1 line-clamp-2 text-sm text-gray-500">{task.notes}</p>}
-
-        <div className="mt-3 flex items-center gap-2">
-          <div className="flex -space-x-2">
-            {task.claimants.length === 0 ? (
-              <span className="text-xs text-gray-400">暂无认领者</span>
-            ) : (
-              task.claimants.map((c) => (
-                <UserAvatar key={c.id} user={c} size={28} className="ring-2 ring-white" />
-              ))
-            )}
-          </div>
-          {task.claimants[0]?.talents?.length ? (
-            <span className="text-xs text-gray-400">{task.claimants[0].talents.join(' ')}</span>
-          ) : null}
-          {task.targetUser && (
-            <span className="text-xs text-gray-500">指派给 {task.targetUser.display_name}</span>
+    <div
+      className={cn(
+        'relative flex flex-col rounded-2xl border border-black/5 bg-white p-4 shadow-sm',
+        task.status === 'completed' && 'opacity-70',
+      )}
+    >
+      <span
+        className={cn('absolute left-0 top-4 h-[calc(100%-2rem)] w-1.5 rounded-full', COLOR_META[color].bar)}
+      />
+      <div className="mb-2 flex items-start gap-2 pl-2">
+        <button
+          type="button"
+          onClick={onTogglePin}
+          className={cn(
+            'mt-0.5 text-lg leading-none',
+            pinned ? 'text-brand' : 'text-gray-300 hover:text-gray-400',
           )}
-          {task.target_group_id === null && task.target_user_id === null && (
-            <span className="text-xs text-gray-400">· 全员可见</span>
-          )}
-        </div>
-
-        <div className={`mt-3 flex items-center gap-1.5 text-sm ${isOverdue ? 'text-brand' : 'text-gray-500'}`}>
-          <Clock className="h-4 w-4" />
-          {formatDeadline(task.due_at)}
-          {isOverdue && <span className="font-medium">· 已逾期</span>}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {canClaim(task, profile) && (
-            <Button
-              size="sm"
-              variant="soft"
-              disabled={claim.isPending}
-              onClick={() => claim.mutate(task.id)}
-            >
-              <UserPlus className="h-4 w-4" />
-              认领
-            </Button>
-          )}
-          {canComplete(task, profile) && (
-            <>
-              <Button
-                size="sm"
-                disabled={complete.isPending}
-                onClick={() => complete.mutate(task.id)}
-              >
-                <Check className="h-4 w-4" />
-                完成
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={delay.isPending}
-                onClick={() => delay.mutate(task.id)}
-              >
-                <Hourglass className="h-4 w-4" />
-                需要更多时间
-              </Button>
-            </>
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => navigate(`/chat?forward=${task.id}`)}
-          >
-            <Share2 className="h-4 w-4" />
-            转发
-          </Button>
-        </div>
-
-        <ReactionBar task={task} />
+          aria-label="置顶任务"
+        >
+          📌
+        </button>
+        <h3
+          className="min-w-0 flex-1 truncate text-base font-semibold text-gray-800"
+          title={task.title}
+        >
+          {task.title}
+        </h3>
+        <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-gray-500">
+          {task.category}
+        </span>
       </div>
+
+      <div className="mb-2 pl-2 text-xs text-gray-500">
+        <div>
+          截止：{formatDateTime(task.due_at)}
+          {isOverdue && (
+            <span className="ml-1 font-medium text-red-500">
+              已逾期{overdueDays > 0 ? ` ${overdueDays} 天` : ''}
+            </span>
+          )}
+        </div>
+        {task.targetUser && <div>指派给 {task.targetUser.display_name}</div>}
+        {task.target_group_id === null && task.target_user_id === null && (
+          <div className="text-gray-400">· 全员可见</div>
+        )}
+      </div>
+
+      {task.notes && (
+        <div className="mb-3 line-clamp-3 pl-2 text-sm text-gray-500">
+          {renderSimpleMarkdown(task.notes)}
+        </div>
+      )}
+
+      <div className="mt-auto flex items-center gap-2 pl-2">
+        <div className="flex -space-x-2">
+          {task.claimants.length === 0 ? (
+            <span className="text-xs text-gray-400">暂无认领者</span>
+          ) : (
+            task.claimants.map((c) => (
+              <UserAvatar key={c.id} user={c} size={28} className="ring-2 ring-white" />
+            ))
+          )}
+        </div>
+        {task.claimants[0]?.talents?.length ? (
+          <span className="text-xs text-gray-400">{task.claimants[0].talents.join(' ')}</span>
+        ) : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2 pl-2">
+        {canClaimTask && !iAmClaimant && task.status !== 'completed' && (
+          <button
+            onClick={() => claim.mutate(task.id)}
+            disabled={claim.isPending}
+            className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            认领
+          </button>
+        )}
+        {canCompleteTask && task.status !== 'completed' && (
+          <button
+            onClick={() => complete.mutate(task.id)}
+            disabled={complete.isPending}
+            className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            完成
+          </button>
+        )}
+        {canDelayTask && task.status !== 'completed' && (
+          <button
+            onClick={() => delay.mutate(task.id)}
+            disabled={delay.isPending}
+            className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            我需要更多时间
+          </button>
+        )}
+        {task.status === 'completed' && <span className="text-xs text-emerald-600">已完成</span>}
+      </div>
+
+      <ReactionBar task={task} />
     </div>
   );
 }

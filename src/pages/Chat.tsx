@@ -73,6 +73,7 @@ export default function Chat() {
           label={activeConv?.label ?? ''}
           me={profile}
           profilesById={profilesById}
+          members={profiles}
           forward={forwardTask ? { title: forwardTask.title, onSend: sendForward } : null}
         />
       ) : (

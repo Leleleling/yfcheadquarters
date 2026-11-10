@@ -1,28 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import type { Message } from '../../types/database';
 
-export function useChatMessages(conversationKey: string | null) {
+export function useChat(conversationKey: string) {
   const qc = useQueryClient();
-  const query = useQuery({
+  const [connTick, setConnTick] = useState(0);
+
+  const { data: messages = [], isLoading } = useQuery({
     queryKey: ['messages', conversationKey],
-    enabled: !!conversationKey,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('conversation_key', conversationKey!)
+        .eq('conversation_key', conversationKey)
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data as Message[];
     },
   });
 
+  // Realtime 订阅 + 断线自动重连
   useEffect(() => {
-    if (!conversationKey) return;
-    const channel = supabase
-      .channel(`messages:${conversationKey}`)
+    const channel = supabase.channel(`chat:${conversationKey}`);
+    channel
       .on(
         'postgres_changes',
         {
@@ -32,20 +33,32 @@ export function useChatMessages(conversationKey: string | null) {
           filter: `conversation_key=eq.${conversationKey}`,
         },
         (payload) => {
+          const row = payload.new as Message;
           qc.setQueryData<Message[]>(['messages', conversationKey], (old = []) => {
-            const incoming = payload.new as Message;
-            if (old.some((m) => m.id === incoming.id)) return old;
-            return [...old, incoming];
+            if (old.some((m) => m.id === row.id)) return old;
+            return [...old, row];
           });
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        // 断线或出错时，延时后触发重新订阅
+        if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
+          setTimeout(() => setConnTick((t) => t + 1), 1500);
+        }
+      });
     return () => {
-      void supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
+  }, [conversationKey, qc, connTick]);
+
+  // 网络恢复后重新拉取最新消息
+  useEffect(() => {
+    const onOnline = () => qc.invalidateQueries({ queryKey: ['messages', conversationKey] });
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
   }, [conversationKey, qc]);
 
-  return query;
+  return { messages, isLoading };
 }
 
 export async function sendMessage(input: {
