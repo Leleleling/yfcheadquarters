@@ -26,8 +26,8 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: https://wwseahznjatpompaxedt.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3c2VhaHpuamF0cG9tcGF4ZWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNDQxNDgsImV4cCI6MjEwOTgyMDE0OH0.71rpvkGQxqm_RlhKm8s4DBQn8jYBbXfaRfKS8GHW4jQ
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
