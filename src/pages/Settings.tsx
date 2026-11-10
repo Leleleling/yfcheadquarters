@@ -1,91 +1,98 @@
-import { Languages, Palette } from 'lucide-react';
-import { BackupCard } from '../components/settings/BackupCard';
-import { SettingsAboutCard } from '../components/settings/SettingsAboutCard';
-import { SettingsDataCard } from '../components/settings/SettingsDataCard';
-import { SettingsNotifyCard } from '../components/settings/SettingsNotifyCard';
-import { SettingsPwaCard } from '../components/settings/SettingsPwaCard';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import {
+  TIME_STATUS_OPTIONS,
+  TALENT_OPTIONS,
+  type TimeStatus,
+} from '../types/database';
+import { Button } from '../components/ui/Button';
 import { cn } from '../components/ui/cn';
-import { useAppStore, type ThemeMode } from '../store/useAppStore';
-import { useDict, type Lang } from '../utils/i18n';
 
 export default function Settings() {
-  const t = useDict();
-  const theme = useAppStore((state) => state.theme);
-  const language = useAppStore((state) => state.language);
-  const setTheme = useAppStore((state) => state.setTheme);
-  const setLanguage = useAppStore((state) => state.setLanguage);
+  const { profile, refreshProfile } = useAuth();
+  const qc = useQueryClient();
+  const [status, setStatus] = useState<TimeStatus | null>(profile?.time_status ?? null);
+  const [talents, setTalents] = useState<string[]>(profile?.talents ?? []);
+  const [saving, setSaving] = useState(false);
 
-  const themes: { value: ThemeMode; label: string }[] = [
-    { value: 'light', label: t.settings.themeLight },
-    { value: 'dark', label: t.settings.themeDark },
-    { value: 'system', label: t.settings.themeSystem },
-  ];
-  const languages: { value: Lang; label: string }[] = [
-    { value: 'zh', label: t.settings.languageZh },
-    { value: 'en', label: t.settings.languageEn },
-  ];
+  if (!profile) return null;
+
+  function toggleTalent(t: string) {
+    setTalents((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  }
+
+  async function save() {
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ time_status: status, talents })
+      .eq('id', profile!.id);
+    setSaving(false);
+    if (error) {
+      console.error('[settings] 保存失败', error);
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ['profiles'] });
+    await refreshProfile();
+  }
+
+  const selectClass = 'tp-surface tp-border h-11 w-full border px-3 text-sm outline-none';
 
   return (
-    <div className="tp-rise space-y-4">
-      <section className="tp-surface p-5">
-        <div className="flex items-center gap-2">
-          <Palette className="h-[18px] w-[18px] text-brand" />
-          <h2 className="text-base font-semibold">{t.settings.appearance}</h2>
-        </div>
-        <p className="tp-muted mt-1.5 text-sm">{t.settings.themeBody}</p>
+    <div className="mx-auto max-w-2xl">
+      <h2 className="mb-5 text-xl font-bold text-gray-900">个人设置</h2>
 
-        <div className="mt-5">
-          <p className="tp-label mb-2">{t.settings.theme}</p>
-          <div className="flex gap-1 rounded-lg bg-black/[0.04] p-1 dark:bg-white/[0.06]">
-            {themes.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                aria-pressed={theme === item.value}
-                onClick={() => setTheme(item.value)}
-                className={cn(
-                  'tp-segment flex-1 cursor-pointer',
-                  theme === item.value ? 'tp-segment-active' : 'tp-segment-idle',
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+      <div className="tp-surface space-y-6 rounded-2xl border p-6">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">姓名</label>
+          <div className="text-base font-semibold text-gray-900">{profile.display_name}</div>
         </div>
-
-        <div className="tp-divider my-5" />
 
         <div>
-          <div className="mb-2 flex items-center gap-2">
-            <Languages className="h-4 w-4 tp-muted" />
-            <p className="tp-label">{t.settings.language}</p>
-          </div>
-          <div className="flex gap-1 rounded-lg bg-black/[0.04] p-1 dark:bg-white/[0.06]">
-            {languages.map((item) => (
+          <label className="mb-1 block text-sm font-medium text-gray-700">时间状态</label>
+          <select
+            className={selectClass}
+            value={status ?? ''}
+            onChange={(e) => setStatus((e.target.value || null) as TimeStatus | null)}
+          >
+            <option value="">未设置</option>
+            {TIME_STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">天赋贴纸</label>
+          <div className="flex flex-wrap gap-2">
+            {TALENT_OPTIONS.map((t) => (
               <button
-                key={item.value}
+                key={t}
                 type="button"
-                aria-pressed={language === item.value}
-                onClick={() => setLanguage(item.value)}
+                onClick={() => toggleTalent(t)}
                 className={cn(
-                  'tp-segment flex-1 cursor-pointer',
-                  language === item.value ? 'tp-segment-active' : 'tp-segment-idle',
+                  'flex h-10 w-10 items-center justify-center rounded-xl text-xl transition-all',
+                  talents.includes(t)
+                    ? 'bg-brand text-white shadow-sm'
+                    : 'bg-black/5 hover:bg-black/10',
                 )}
               >
-                {item.label}
+                {t}
               </button>
             ))}
           </div>
-          <p className="tp-muted mt-2 text-xs">{t.settings.languageBody}</p>
         </div>
-      </section>
 
-      <BackupCard />
-      <SettingsNotifyCard />
-      <SettingsPwaCard />
-      <SettingsDataCard />
-      <SettingsAboutCard />
+        <div className="flex justify-end">
+          <Button onClick={save} disabled={saving}>
+            {saving ? '保存中…' : '保存'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
