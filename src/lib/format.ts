@@ -1,4 +1,4 @@
-// 统一时间格式化：始终使用浏览器本地时区，避免 UTC 时差。
+// 统一时间格式化：始终使用浏览器本地时区显示，避免 UTC 带来的时差偏差。
 const DATE_OPTS: Intl.DateTimeFormatOptions = {
   month: 'short',
   day: 'numeric',
