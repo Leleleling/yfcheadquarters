@@ -64,7 +64,7 @@ export function TaskCreateModal({ open, onClose }: { open: boolean; onClose: () 
         target_user_id: assignMode === 'user' ? (targetUser ? targetUser : null) : null,
         notes: notes.trim() || null,
         created_by: profile.id,
-        status: 'todo',
+        status: 'open',
         completed_at: null,
         min_claimants: 1,
         max_claimants: 1,

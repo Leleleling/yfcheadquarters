@@ -11,7 +11,7 @@ export function ReactionBar({ task }: { task: TaskWithRelations }) {
   const toggle = useToggleReaction();
   const [open, setOpen] = useState(false);
 
-  if (task.status !== 'completed' || !profile) return null;
+  if (task.status !== 'done' || !profile) return null;
 
   const grouped = task.reactions.reduce<Record<string, number>>((acc, r) => {
     acc[r.emoji] = (acc[r.emoji] ?? 0) + 1;

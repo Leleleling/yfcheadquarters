@@ -73,7 +73,7 @@ export default function TaskWall() {
 
   const sorted = useMemo(() => {
     const visible = (data ?? []).filter((t) => {
-      const isDone = t.status === 'completed';
+      const isDone = t.status === 'done';
       if (isDone) {
         const completed = t.completed_at ? new Date(t.completed_at).getTime() : 0;
         if (Date.now() - completed > 5 * 86_400_000) return false;

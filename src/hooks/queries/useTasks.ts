@@ -40,7 +40,7 @@ export function useTasks() {
 
       const now = Date.now();
       const visible = (tasksRes.data as Task[]).filter((t) => {
-        if (t.status === 'todo') return true;
+        if (t.status === 'open') return true;
         if (t.completed_at && now - new Date(t.completed_at).getTime() <= FIVE_DAYS_MS) return true;
         return false;
       });

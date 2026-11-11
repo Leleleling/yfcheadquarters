@@ -31,7 +31,7 @@ export function TaskCard({
     [task, me],
   );
 
-  const isOverdue = task.status !== 'completed' && new Date(task.due_at).getTime() < Date.now();
+  const isOverdue = task.status !== 'done' && new Date(task.due_at).getTime() < Date.now();
   const overdueDays = daysOverdue(task.due_at);
 
   const claim = useClaimTask();
@@ -47,7 +47,7 @@ export function TaskCard({
     <div
       className={cn(
         'relative flex flex-col rounded-2xl border border-black/5 bg-white p-4 shadow-sm',
-        task.status === 'completed' && 'opacity-70',
+        task.status === 'done' && 'opacity-70',
       )}
     >
       <span
@@ -113,7 +113,7 @@ export function TaskCard({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 pl-2">
-        {canClaimTask && !iAmClaimant && task.status !== 'completed' && (
+        {canClaimTask && !iAmClaimant && task.status !== 'done' && (
           <button
             onClick={() => claim.mutate(task.id)}
             disabled={claim.isPending}
@@ -122,7 +122,7 @@ export function TaskCard({
             认领
           </button>
         )}
-        {canCompleteTask && task.status !== 'completed' && (
+        {canCompleteTask && task.status !== 'done' && (
           <button
             onClick={() => complete.mutate(task.id)}
             disabled={complete.isPending}
@@ -131,7 +131,7 @@ export function TaskCard({
             完成
           </button>
         )}
-        {canDelayTask && task.status !== 'completed' && (
+        {canDelayTask && task.status !== 'done' && (
           <button
             onClick={() => delay.mutate(task.id)}
             disabled={delay.isPending}
@@ -140,7 +140,7 @@ export function TaskCard({
             我需要更多时间
           </button>
         )}
-        {task.status === 'completed' && <span className="text-xs text-emerald-600">已完成</span>}
+        {task.status === 'done' && <span className="text-xs text-emerald-600">已完成</span>}
       </div>
 
       <ReactionBar task={task} />

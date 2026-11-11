@@ -7,7 +7,7 @@ export type TimeStatus = '特别忙' | '比较忙' | '有时间' | '空闲';
 
 export type TaskType = '剪辑' | '配音' | '脚本' | '审核';
 
-export type TaskStatus = 'todo' | 'completed';
+export type TaskStatus = 'open' | 'done';
 
 export type MessageType = 'text' | 'emoji' | 'voice' | 'file';
 
