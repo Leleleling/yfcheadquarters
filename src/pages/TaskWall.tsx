@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { deriveColor, COLOR_ORDER, COLOR_META, claimantGroupIds } from '../lib/deriveColor';
+import { deriveColor, COLOR_ORDER, COLOR_META } from '../lib/deriveColor';
 import { TASK_TYPE_OPTIONS, type Profile, type Reaction, type Task } from '../types/database';
 import { usePinnedTasks } from '../hooks/usePinnedTasks';
 import { TaskCard } from '../components/task/TaskCard';
@@ -106,16 +106,18 @@ export default function TaskWall() {
 
     enriched.sort((a, b) => {
       const ca = deriveColor({
-        claimantIds: a.claimantIds,
+        targetUserId: a.target_user_id,
+        targetGroupId: a.target_group_id,
         meId: profile!.id,
-        claimantGroupIds: claimantGroupIds(a.claimants),
         myGroupId: profile!.group_id,
+        myRole: profile!.role,
       });
       const cb = deriveColor({
-        claimantIds: b.claimantIds,
+        targetUserId: b.target_user_id,
+        targetGroupId: b.target_group_id,
         meId: profile!.id,
-        claimantGroupIds: claimantGroupIds(b.claimants),
         myGroupId: profile!.group_id,
+        myRole: profile!.role,
       });
       const colorDiff = COLOR_ORDER[ca] - COLOR_ORDER[cb];
       if (colorDiff !== 0) return colorDiff;
@@ -131,6 +133,15 @@ export default function TaskWall() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+        <span className="font-medium text-gray-600">颜色说明：</span>
+        {(['red', 'blue', 'green', 'gray'] as const).map((c) => (
+          <span key={c} className="inline-flex items-center gap-1.5">
+            <span className={`h-2.5 w-2.5 rounded-full ${COLOR_META[c].bar}`} />
+            {COLOR_META[c].label}
+          </span>
+        ))}
+      </div>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input
           value={search}

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { deriveColor, COLOR_META, claimantGroupIds } from '../../lib/deriveColor';
-import { canClaim, canComplete, canDelay } from '../../lib/rbac';
-import { useClaimTask, useCompleteTask, useDelayTask } from '../../hooks/queries/useTaskActions';
+import { deriveColor, COLOR_META } from '../../lib/deriveColor';
+import { canComplete, canDelay } from '../../lib/rbac';
+import { useCompleteTask, useDelayTask } from '../../hooks/queries/useTaskActions';
 import { UserAvatar } from '../common/UserAvatar';
 import { ReactionBar } from './ReactionBar';
 import { renderSimpleMarkdown } from '../../lib/markdown';
@@ -23,10 +23,11 @@ export function TaskCard({
   const color = useMemo(
     () =>
       deriveColor({
-        claimantIds: task.claimantIds,
+        targetUserId: task.target_user_id,
+        targetGroupId: task.target_group_id,
         meId: me.id,
-        claimantGroupIds: claimantGroupIds(task.claimants),
         myGroupId: me.group_id,
+        myRole: me.role,
       }),
     [task, me],
   );
@@ -34,12 +35,9 @@ export function TaskCard({
   const isOverdue = task.status !== 'done' && new Date(task.due_at).getTime() < Date.now();
   const overdueDays = daysOverdue(task.due_at);
 
-  const claim = useClaimTask();
   const complete = useCompleteTask();
   const delay = useDelayTask();
 
-  const iAmClaimant = task.claimantIds.includes(me.id);
-  const canClaimTask = canClaim(task, me);
   const canCompleteTask = canComplete(task, me);
   const canDelayTask = canDelay(task, me);
 
@@ -113,15 +111,6 @@ export function TaskCard({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 pl-2">
-        {canClaimTask && !iAmClaimant && task.status !== 'done' && (
-          <button
-            onClick={() => claim.mutate(task.id)}
-            disabled={claim.isPending}
-            className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-          >
-            认领
-          </button>
-        )}
         {canCompleteTask && task.status !== 'done' && (
           <button
             onClick={() => complete.mutate(task.id)}

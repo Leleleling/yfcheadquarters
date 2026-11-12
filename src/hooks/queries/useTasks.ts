@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { deriveColor, COLOR_ORDER } from '../../lib/deriveColor';
-import type { Profile, Reaction, Task, TaskClaimant, TaskWithRelations } from '../../types/database';
+import type { Profile, Reaction, Role, Task, TaskClaimant, TaskWithRelations } from '../../types/database';
 
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
 
@@ -67,24 +67,27 @@ export function useTasks() {
   return query;
 }
 
-/** 供任务墙排序：先按颜色权重（红>蓝>绿>灰），再按截止日期升序。 */
+/** 按颜色权重（红>蓝>绿>灰）再按截止时间排序；与 TaskWall 内联逻辑保持一致。 */
 export function sortTasks(
   tasks: TaskWithRelations[],
   meId: string,
   myGroupId: string | null,
+  myRole: Role,
 ): TaskWithRelations[] {
   return [...tasks].sort((a, b) => {
     const ca = deriveColor({
-      claimantIds: a.claimantIds,
+      targetUserId: a.target_user_id,
+      targetGroupId: a.target_group_id,
       meId,
-      claimantGroupIds: a.claimants.map((c) => c.group_id ?? '').filter(Boolean),
       myGroupId,
+      myRole,
     });
     const cb = deriveColor({
-      claimantIds: b.claimantIds,
+      targetUserId: b.target_user_id,
+      targetGroupId: b.target_group_id,
       meId,
-      claimantGroupIds: b.claimants.map((c) => c.group_id ?? '').filter(Boolean),
       myGroupId,
+      myRole,
     });
     const orderDiff = COLOR_ORDER[ca] - COLOR_ORDER[cb];
     if (orderDiff !== 0) return orderDiff;

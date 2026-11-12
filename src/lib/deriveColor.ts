@@ -1,30 +1,34 @@
-import type { Profile } from '../types/database';
+import type { Role } from '../types/database';
 
 export type TaskColor = 'red' | 'blue' | 'green' | 'gray';
 
 export interface DeriveColorInput {
-  claimantIds: string[];
+  /** 任务表 target_user_id：指派给个人时有值 */
+  targetUserId: string | null;
+  /** 任务表 target_group_id：指派给组时有值 */
+  targetGroupId: string | null;
   meId: string;
-  claimantGroupIds: string[];
   myGroupId: string | null;
+  myRole: Role;
 }
 
 /**
- * 纯函数：根据「当前用户与任务认领者的关系」派生颜色。
- * 红=仅我认领；蓝=我认领且多人合作；绿=同组他人认领；灰=无关。
+ * 纯函数：根据「任务与当前用户的指派关系」派生颜色。
+ * 红=指派给我；蓝=本组组任务（我是组长，可完成）；绿=本组组任务（普通视角）；灰=其他任务。
+ * 认领机制停用后不再参与颜色计算。
  */
 export function deriveColor({
-  claimantIds,
+  targetUserId,
+  targetGroupId,
   meId,
-  claimantGroupIds,
   myGroupId,
+  myRole,
 }: DeriveColorInput): TaskColor {
-  const iAmClaimant = claimantIds.includes(meId);
-  if (iAmClaimant) {
-    return claimantIds.length > 1 ? 'blue' : 'red';
+  if (targetUserId && targetUserId === meId) return 'red';
+  if (targetGroupId && targetGroupId === myGroupId) {
+    return myRole === 'L2_leader' ? 'blue' : 'green';
   }
-  const sameGroup = claimantGroupIds.some((g) => !!g && g === myGroupId);
-  return sameGroup ? 'green' : 'gray';
+  return 'gray';
 }
 
 export const COLOR_ORDER: Record<TaskColor, number> = {
@@ -35,13 +39,8 @@ export const COLOR_ORDER: Record<TaskColor, number> = {
 };
 
 export const COLOR_META: Record<TaskColor, { bar: string; label: string }> = {
-  red: { bar: 'bg-[#E5484D]', label: '我的任务' },
-  blue: { bar: 'bg-[#3B82F6]', label: '合作任务' },
-  green: { bar: 'bg-[#22C55E]', label: '组内任务' },
+  red: { bar: 'bg-[#E5484D]', label: '指派给我' },
+  blue: { bar: 'bg-[#3B82F6]', label: '本组任务（组长可完成）' },
+  green: { bar: 'bg-[#22C55E]', label: '本组任务' },
   gray: { bar: 'bg-[#9CA3AF]', label: '其他任务' },
 };
-
-/** 由认领者档案推算其 group_id 列表，供颜色派生使用。 */
-export function claimantGroupIds(claimants: Profile[]): string[] {
-  return claimants.map((c) => c.group_id ?? '').filter(Boolean);
-}
