@@ -78,6 +78,7 @@ export function sortTasks(
     const ca = deriveColor({
       targetUserId: a.target_user_id,
       targetGroupId: a.target_group_id,
+      targetUserGroupId: a.targetUser?.group_id ?? null,
       meId,
       myGroupId,
       myRole,
@@ -85,6 +86,7 @@ export function sortTasks(
     const cb = deriveColor({
       targetUserId: b.target_user_id,
       targetGroupId: b.target_group_id,
+      targetUserGroupId: b.targetUser?.group_id ?? null,
       meId,
       myGroupId,
       myRole,

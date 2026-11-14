@@ -122,6 +122,7 @@ export default function TaskWall() {
       const ca = deriveColor({
         targetUserId: a.target_user_id,
         targetGroupId: a.target_group_id,
+        targetUserGroupId: a.targetUser?.group_id ?? null,
         meId: profile!.id,
         myGroupId: profile!.group_id,
         myRole: profile!.role,
@@ -129,6 +130,7 @@ export default function TaskWall() {
       const cb = deriveColor({
         targetUserId: b.target_user_id,
         targetGroupId: b.target_group_id,
+        targetUserGroupId: b.targetUser?.group_id ?? null,
         meId: profile!.id,
         myGroupId: profile!.group_id,
         myRole: profile!.role,

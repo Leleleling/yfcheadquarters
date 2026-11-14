@@ -7,6 +7,8 @@ export interface DeriveColorInput {
   targetUserId: string | null;
   /** 任务表 target_group_id：指派给组时有值 */
   targetGroupId: string | null;
+  /** 被指派个人所在组 id（由 profiles 关联得到）；仅指派给个人时有意义 */
+  targetUserGroupId: string | null;
   meId: string;
   myGroupId: string | null;
   myRole: Role;
@@ -14,20 +16,24 @@ export interface DeriveColorInput {
 
 /**
  * 纯函数：根据「任务与当前用户的指派关系」派生颜色。
- * 红=指派给我；蓝=集体任务（全员任务；或本组任务且我是组长）；绿=本组任务（普通视角）；灰=其他组的任务。
+ * 红=指派给我；蓝=集体任务（全员任务；或本组任务且我是组长）；
+ * 绿=本组任务（组任务普通视角，或指派给本组他人的个人任务）；灰=其他组的任务。
  * 认领机制停用后不再参与颜色计算；所有任务对所有人可见，颜色只表达与我的关系。
  */
 export function deriveColor({
   targetUserId,
   targetGroupId,
+  targetUserGroupId,
   meId,
   myGroupId,
   myRole,
 }: DeriveColorInput): TaskColor {
   if (targetUserId && targetUserId === meId) return 'red';
   if (!targetUserId && !targetGroupId) return 'blue';
-  if (targetGroupId && targetGroupId === myGroupId) {
-    return myRole === 'L2_leader' ? 'blue' : 'green';
+  const sameGroup = !!myGroupId && myGroupId === targetGroupId;
+  const assigneeInMyGroup = !!myGroupId && !!targetUserId && myGroupId === targetUserGroupId;
+  if (sameGroup || assigneeInMyGroup) {
+    return sameGroup && myRole === 'L2_leader' ? 'blue' : 'green';
   }
   return 'gray';
 }

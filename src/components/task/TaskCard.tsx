@@ -25,6 +25,7 @@ export function TaskCard({
       deriveColor({
         targetUserId: task.target_user_id,
         targetGroupId: task.target_group_id,
+        targetUserGroupId: task.targetUser?.group_id ?? null,
         meId: me.id,
         myGroupId: me.group_id,
         myRole: me.role,
