@@ -13,6 +13,7 @@ export default function TaskWall() {
   const { profile } = useAuth();
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState<string>('all');
+  const [scope, setScope] = useState<string>('all');
   const { pinned, isPinned, toggle } = usePinnedTasks();
 
   const { data, isLoading } = useQuery({
@@ -75,7 +76,7 @@ export default function TaskWall() {
     if (!profile) return [];
     const visible = (data ?? []).filter((t) => {
       const isDone = t.status === 'done';
-      if (isDone) {
+      if (isDone && scope !== 'done') {
         const completed = t.completed_at ? new Date(t.completed_at).getTime() : 0;
         if (Date.now() - completed > 5 * 86_400_000) return false;
       }
@@ -84,6 +85,18 @@ export default function TaskWall() {
 
     const filtered = visible.filter((t) => {
       if (cat !== 'all' && t.category !== cat) return false;
+      if (scope === 'mine') {
+        if (t.target_user_id !== profile.id) return false;
+      } else if (scope === 'group') {
+        const isMine = t.target_user_id === profile.id;
+        const isMyGroup = !!profile.group_id && t.target_group_id === profile.group_id;
+        const isAllHands = !t.target_user_id && !t.target_group_id;
+        if (!isMine && !isMyGroup && !isAllHands) return false;
+      } else if (scope === 'open') {
+        if (t.status !== 'open') return false;
+      } else if (scope === 'done') {
+        if (t.status !== 'done') return false;
+      }
       const q = search.trim().toLowerCase();
       if (q) {
         if (!(t.title.toLowerCase().includes(q) || (t.notes ?? '').toLowerCase().includes(q))) return false;
@@ -128,7 +141,7 @@ export default function TaskWall() {
     const pinnedList = enriched.filter((t) => isPinned(t.id));
     const rest = enriched.filter((t) => !isPinned(t.id));
     return [...pinnedList, ...rest];
-  }, [data, profiles, claimants, reactions, profile, cat, search, pinned]);
+  }, [data, profiles, claimants, reactions, profile, cat, search, scope, pinned]);
 
   if (!profile) return null;
 
@@ -162,8 +175,19 @@ export default function TaskWall() {
             </option>
           ))}
         </select>
-        {(search || cat !== 'all') && (
-          <Button variant="ghost" onClick={() => { setSearch(''); setCat('all'); }}>
+        <select
+          value={scope}
+          onChange={(e) => setScope(e.target.value)}
+          className="tp-surface tp-border h-11 rounded-lg border px-3 text-sm"
+        >
+          <option value="all">任务分类：全部</option>
+          <option value="mine">我的任务</option>
+          <option value="group">本组任务（含全员）</option>
+          <option value="open">未完成的全部</option>
+          <option value="done">已完成的全部</option>
+        </select>
+        {(search || cat !== 'all' || scope !== 'all') && (
+          <Button variant="ghost" onClick={() => { setSearch(''); setCat('all'); setScope('all'); }}>
             清除筛选
           </Button>
         )}
