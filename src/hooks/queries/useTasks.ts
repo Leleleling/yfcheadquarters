@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { deriveColor, COLOR_ORDER } from '../../lib/deriveColor';
-import type { Profile, Reaction, Role, Task, TaskClaimant, TaskWithRelations } from '../../types/database';
+import type { Profile, Reaction, Task, TaskClaimant, TaskWithRelations } from '../../types/database';
 
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
 
@@ -72,7 +72,6 @@ export function sortTasks(
   tasks: TaskWithRelations[],
   meId: string,
   myGroupId: string | null,
-  myRole: Role,
 ): TaskWithRelations[] {
   return [...tasks].sort((a, b) => {
     const ca = deriveColor({
@@ -81,7 +80,6 @@ export function sortTasks(
       targetUserGroupId: a.targetUser?.group_id ?? null,
       meId,
       myGroupId,
-      myRole,
     });
     const cb = deriveColor({
       targetUserId: b.target_user_id,
@@ -89,7 +87,6 @@ export function sortTasks(
       targetUserGroupId: b.targetUser?.group_id ?? null,
       meId,
       myGroupId,
-      myRole,
     });
     const orderDiff = COLOR_ORDER[ca] - COLOR_ORDER[cb];
     if (orderDiff !== 0) return orderDiff;

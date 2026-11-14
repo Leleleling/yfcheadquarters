@@ -125,7 +125,6 @@ export default function TaskWall() {
         targetUserGroupId: a.targetUser?.group_id ?? null,
         meId: profile!.id,
         myGroupId: profile!.group_id,
-        myRole: profile!.role,
       });
       const cb = deriveColor({
         targetUserId: b.target_user_id,
@@ -133,7 +132,6 @@ export default function TaskWall() {
         targetUserGroupId: b.targetUser?.group_id ?? null,
         meId: profile!.id,
         myGroupId: profile!.group_id,
-        myRole: profile!.role,
       });
       const colorDiff = COLOR_ORDER[ca] - COLOR_ORDER[cb];
       if (colorDiff !== 0) return colorDiff;

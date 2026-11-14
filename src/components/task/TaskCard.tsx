@@ -28,7 +28,6 @@ export function TaskCard({
         targetUserGroupId: task.targetUser?.group_id ?? null,
         meId: me.id,
         myGroupId: me.group_id,
-        myRole: me.role,
       }),
     [task, me],
   );
