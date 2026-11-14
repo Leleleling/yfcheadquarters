@@ -11,6 +11,8 @@ export default function Admin() {
   const [open, setOpen] = useState(false);
   const { data } = useTasks();
 
+  if (!profile) return null;
+
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-5 flex items-center justify-between">

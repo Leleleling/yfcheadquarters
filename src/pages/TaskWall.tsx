@@ -72,6 +72,7 @@ export default function TaskWall() {
   }, [reactions]);
 
   const sorted = useMemo(() => {
+    if (!profile) return [];
     const visible = (data ?? []).filter((t) => {
       const isDone = t.status === 'done';
       if (isDone) {
