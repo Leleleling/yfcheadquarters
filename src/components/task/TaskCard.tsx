@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { deriveColor, COLOR_META } from '../../lib/deriveColor';
-import { canComplete, canDelay } from '../../lib/rbac';
-import { useCompleteTask, useDelayTask } from '../../hooks/queries/useTaskActions';
+import { canComplete, canDelay, isAdmin } from '../../lib/rbac';
+import { useCompleteTask, useDelayTask, useDeleteTask } from '../../hooks/queries/useTaskActions';
 import { UserAvatar } from '../common/UserAvatar';
+import { TaskCreateModal } from './TaskCreateModal';
 import { ReactionBar } from './ReactionBar';
 import { renderSimpleMarkdown } from '../../lib/markdown';
 import { daysOverdue, formatDateTime } from '../../lib/format';
@@ -37,9 +39,12 @@ export function TaskCard({
 
   const complete = useCompleteTask();
   const delay = useDelayTask();
+  const remove = useDeleteTask();
+  const [editOpen, setEditOpen] = useState(false);
 
   const canCompleteTask = canComplete(task, me);
   const canDelayTask = canDelay(task, me);
+  const canManage = isAdmin(me);
 
   return (
     <div
@@ -130,9 +135,39 @@ export function TaskCard({
           </button>
         )}
         {task.status === 'done' && <span className="text-xs text-emerald-600">已完成</span>}
+        {canManage && (
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-black/5 hover:text-brand"
+              aria-label="编辑任务"
+              title="编辑任务"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`确定删除任务「${task.title}」吗？此操作不可撤销。`)) {
+                  remove.mutate(task.id);
+                }
+              }}
+              disabled={remove.isPending}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
+              aria-label="删除任务"
+              title="删除任务"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       <ReactionBar task={task} />
+      {editOpen && (
+        <TaskCreateModal open={editOpen} onClose={() => setEditOpen(false)} editTask={task} />
+      )}
     </div>
   );
 }

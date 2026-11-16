@@ -1,20 +1,61 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { isAdmin } from '../../lib/rbac';
+import { useUpdateTask } from '../../hooks/queries/useTaskActions';
+import { useToast } from '../ui/Toast';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
-import { TASK_TYPE_OPTIONS, type Group, type Profile, type TaskType } from '../../types/database';
+import { TASK_TYPE_OPTIONS, type Group, type Profile, type TaskType, type TaskWithRelations } from '../../types/database';
 import { cn } from '../ui/cn';
 
 type AssignMode = 'group' | 'user';
 
-export function TaskCreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** ISO 时间转为 datetime-local 输入框所需的本地时间字符串 */
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function TaskCreateModal({
+  open,
+  onClose,
+  editTask,
+}: {
+  open: boolean;
+  onClose: () => void;
+  editTask?: TaskWithRelations | null;
+}) {
   const { profile } = useAuth();
   const qc = useQueryClient();
+  const toast = useToast();
+  const update = useUpdateTask();
+  const editing = !!editTask;
+
+  useEffect(() => {
+    if (!open) return;
+    if (editTask) {
+      setTitle(editTask.title);
+      setType(editTask.category);
+      setDeadline(toLocalInput(editTask.due_at));
+      setNotes(editTask.notes ?? '');
+      setAssignMode(editTask.target_user_id ? 'user' : 'group');
+      setTargetGroup(editTask.target_group_id ?? '');
+      setTargetUser(editTask.target_user_id ?? '');
+    } else {
+      setTitle('');
+      setType('剪辑');
+      setDeadline('');
+      setNotes('');
+      setAssignMode('group');
+      setTargetGroup('');
+      setTargetUser('');
+    }
+  }, [open, editTask]);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<TaskType>('剪辑');
   const [deadline, setDeadline] = useState('');
@@ -51,38 +92,44 @@ export function TaskCreateModal({ open, onClose }: { open: boolean; onClose: () 
   async function handleSubmit() {
     if (!profile || !title.trim() || !deadline) return;
     if (assignMode === 'user' && !targetUser) {
-      alert('请先选择要指派的人员');
+      toast.error('请先选择要指派的人员');
       return;
     }
+    const finalTargetGroupId = assignMode === 'group' ? (targetGroup || null) : null;
+    const finalTargetUserId = assignMode === 'user' ? (targetUser || null) : null;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('tasks').insert({
-        title: title.trim(),
-        category: type,
-        due_at: new Date(deadline).toISOString(),
-        target_group_id: assignMode === 'group' ? (targetGroup ? targetGroup : null) : null,
-        target_user_id: assignMode === 'user' ? (targetUser ? targetUser : null) : null,
-        notes: notes.trim() || null,
-        created_by: profile.id,
-        status: 'open',
-        completed_at: null,
-        min_claimants: 1,
-        max_claimants: 1,
-      });
-      if (error) {
-        alert('创建任务失败：' + error.message);
-        return;
+      if (editing && editTask) {
+        await update.mutateAsync({
+          taskId: editTask.id,
+          title: title.trim(),
+          category: type,
+          dueAt: new Date(deadline).toISOString(),
+          notes: notes.trim() || null,
+          targetUserId: finalTargetUserId,
+          targetGroupId: finalTargetGroupId,
+        });
+      } else {
+        const { error } = await supabase.from('tasks').insert({
+          title: title.trim(),
+          category: type,
+          due_at: new Date(deadline).toISOString(),
+          target_group_id: finalTargetGroupId,
+          target_user_id: finalTargetUserId,
+          notes: notes.trim() || null,
+          created_by: profile.id,
+          status: 'open',
+          completed_at: null,
+          min_claimants: 1,
+          max_claimants: 1,
+        });
+        if (error) throw error;
+        toast.success('任务已创建');
       }
       void qc.invalidateQueries({ queryKey: ['tasks'] });
-      setTitle('');
-      setNotes('');
-      setDeadline('');
-      setTargetGroup('');
-      setTargetUser('');
-      setAssignMode('group');
       onClose();
     } catch (e) {
-      alert('创建任务失败：' + (e instanceof Error ? e.message : String(e)));
+      toast.error(`${editing ? '更新' : '创建'}任务失败：` + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSubmitting(false);
     }
@@ -94,8 +141,8 @@ export function TaskCreateModal({ open, onClose }: { open: boolean; onClose: () 
     <Modal
       open={open}
       onClose={onClose}
-      title="新建任务"
-      subtitle={admin ? '可分配给全员 / 任意组' : '组长仅限本组'}
+      title={editing ? '编辑任务' : '新建任务'}
+      subtitle={editing ? '修改任务信息后保存' : admin ? '可分配给全员 / 任意组' : '组长仅限本组'}
     >
       <div className="space-y-4">
         <div>
@@ -194,7 +241,7 @@ export function TaskCreateModal({ open, onClose }: { open: boolean; onClose: () 
             onClick={handleSubmit}
             disabled={submitting || !title.trim() || !deadline || (assignMode === 'user' && !targetUser)}
           >
-            {submitting ? '创建中…' : '创建任务'}
+            {submitting ? (editing ? '保存中…' : '创建中…') : editing ? '保存修改' : '创建任务'}
           </Button>
         </div>
       </div>

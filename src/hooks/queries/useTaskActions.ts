@@ -1,6 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/ui/Toast';
+import type { TaskType } from '../../types/database';
+
+export interface UpdateTaskInput {
+  taskId: string;
+  title: string;
+  category: TaskType;
+  dueAt: string;
+  notes: string | null;
+  targetUserId: string | null;
+  targetGroupId: string | null;
+}
 
 function useInvalidateTasks() {
   const qc = useQueryClient();
@@ -47,6 +58,45 @@ export function useDelayTask() {
       if (error) throw error;
     },
     onSuccess: invalidate,
+    onError: (e) => toast.error(errMsg(e)),
+  });
+}
+
+export function useUpdateTask() {
+  const invalidate = useInvalidateTasks();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: async (input: UpdateTaskInput) => {
+      const { error } = await supabase.rpc('update_task', {
+        p_task_id: input.taskId,
+        p_title: input.title,
+        p_category: input.category,
+        p_due_at: input.dueAt,
+        p_notes: input.notes,
+        p_target_user_id: input.targetUserId,
+        p_target_group_id: input.targetGroupId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success('任务已更新');
+    },
+  });
+}
+
+export function useDeleteTask() {
+  const invalidate = useInvalidateTasks();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase.rpc('delete_task', { p_task_id: taskId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success('任务已删除');
+    },
     onError: (e) => toast.error(errMsg(e)),
   });
 }
