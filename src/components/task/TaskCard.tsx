@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { deriveColor, COLOR_META } from '../../lib/deriveColor';
-import { canChangeDeadline, canComplete, canDelay } from '../../lib/rbac';
+import { canChangeDeadline, canComplete, canDelay, isAdmin } from '../../lib/rbac';
 import {
   useChangeDeadline,
   useCompleteTask,
   useDelayTask,
+  useDeleteTask,
 } from '../../hooks/queries/useTaskActions';
 import { UserAvatar } from '../common/UserAvatar';
+import { TaskCreateModal } from './TaskCreateModal';
 import { ReactionBar } from './ReactionBar';
 import { renderSimpleMarkdown } from '../../lib/markdown';
 import { daysOverdue, formatDateTime, fromLocalInputValue, toLocalInputValue } from '../../lib/format';
@@ -46,17 +49,20 @@ export function TaskCard({
 
   const complete = useCompleteTask();
   const delay = useDelayTask();
+  const remove = useDeleteTask();
   const changeDeadline = useChangeDeadline();
-  const [deadlineOpen, setDeadlineOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deadlineOpen, setDeadlineModal] = useState(false);
   const [newDue, setNewDue] = useState('');
 
   const canCompleteTask = canComplete(task, me);
   const canDelayTask = canDelay(task, me);
   const canChangeTaskDeadline = canChangeDeadline(task, me);
+  const canManage = isAdmin(me);
 
   const openDeadlineModal = () => {
     setNewDue(toLocalInputValue(task.due_at));
-    setDeadlineOpen(true);
+    setDeadlineModal(true);
   };
 
   return (
@@ -158,18 +164,45 @@ export function TaskCard({
           </button>
         )}
         {task.status === 'done' && <span className="text-xs text-emerald-600">已完成</span>}
+        {canManage && (
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-black/5 hover:text-brand"
+              aria-label="编辑任务"
+              title="编辑任务"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`确定删除任务「${task.title}」吗？此操作不可撤销。`)) {
+                  remove.mutate(task.id);
+                }
+              }}
+              disabled={remove.isPending}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
+              aria-label="删除任务"
+              title="删除任务"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       <ReactionBar task={task} />
 
       <Modal
         open={deadlineOpen}
-        onClose={() => setDeadlineOpen(false)}
+        onClose={() => setDeadlineModal(false)}
         title="调整截止日期"
         subtitle={task.title}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDeadlineOpen(false)}>
+            <Button variant="ghost" onClick={() => setDeadlineModal(false)}>
               取消
             </Button>
             <Button
@@ -177,7 +210,7 @@ export function TaskCard({
               onClick={() => {
                 changeDeadline.mutate(
                   { taskId: task.id, newDueAt: fromLocalInputValue(newDue) },
-                  { onSuccess: () => setDeadlineOpen(false) },
+                  { onSuccess: () => setDeadlineModal(false) },
                 );
               }}
             >
@@ -199,6 +232,10 @@ export function TaskCard({
           调整后任务负责人将收到含新旧日期对比的通知。
         </p>
       </Modal>
+
+      {editOpen && (
+        <TaskCreateModal open={editOpen} onClose={() => setEditOpen(false)} editTask={task} />
+      )}
     </div>
   );
 }
