@@ -32,18 +32,22 @@ const TYPE_ORDER: Record<NotificationType, number> = {
   deadline_changed: 2,
 };
 
-/** 按已确认模板生成第二行小字（任务名已是标题，不重复）。 */
-function buildDetail(n: AppNotification): string {
+/** 按已确认模板生成第二行小字（任务名已是标题，不重复）。viewer 为接收人，用于把"自己"渲染成"你"。 */
+function buildDetail(n: AppNotification, viewerId: string): string {
   const p = n.payload ?? {};
-  const actor = p.actor_name ?? '有人';
-  const owner = p.owner_name ?? '';
+  const rawActor = p.actor_name ?? '有人';
+  const rawOwner = p.owner_name ?? '';
+  const actor = p.actor_id === viewerId ? '你' : rawActor;
+  const owner = p.owner_id === viewerId ? '你' : rawOwner;
+  const ownerRawName = p.owner_name ?? '';
   switch (n.type) {
     case 'assigned':
       return `${actor} 指派给你${p.due_at ? ` · 截止 ${formatDueShort(p.due_at)}` : ''}`;
     case 'completed':
       if (!owner) return `${actor} 完成了这个任务`;
-      if (actor === owner) return `你完成了 ${owner} 的任务`;
-      return `${actor}（代完成）完成了 ${owner} 的任务`;
+      if (actor === owner) return `你完成了${ownerRawName ? ` ${ownerRawName}` : '自己'}的任务`;
+      if (p.actor_id === p.owner_id) return `${actor} 完成了自己的任务`;
+      return `${actor} 完成了 ${owner} 的任务`;
     case 'encouraged': {
       const emoji = p.emoji ?? '👍';
       if (p.times_count && p.times_count > 1) return `${actor} 等给你点了 ${emoji}×${p.times_count}`;
@@ -177,7 +181,7 @@ export default function Notifications() {
                         </span>
                       </div>
                       <div className="mt-1.5 flex items-center justify-between gap-3 pl-4">
-                        <span className="text-sm text-gray-500">{buildDetail(n)}</span>
+                        <span className="text-sm text-gray-500">{buildDetail(n, profile?.id ?? '')}</span>
                         <span className="shrink-0 text-[11px] text-gray-400">
                           {meta?.label ?? n.type}
                         </span>
