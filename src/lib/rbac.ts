@@ -43,3 +43,13 @@ export function canCreateForGroup(targetGroupId: string | null, me: Profile): bo
   if (me.role === 'L2_leader') return targetGroupId === me.group_id;
   return false;
 }
+
+/**
+ * 改截止日期：与后端 change_deadline 校验对齐。
+ * 管理员可改任意 open 任务；组长可改指派给本组的组任务。
+ */
+export function canChangeDeadline(task: TaskWithRelations, me: Profile): boolean {
+  if (task.status === 'done') return false;
+  if (isAdmin(me)) return true;
+  return me.role === 'L2_leader' && !!task.target_group_id && task.target_group_id === me.group_id;
+}

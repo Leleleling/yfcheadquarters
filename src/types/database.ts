@@ -58,14 +58,41 @@ export interface Reaction {
   created_at: string;
 }
 
+export type NotificationType =
+  | 'assigned'
+  | 'completed'
+  | 'encouraged'
+  | 'need_more_time'
+  | 'deadline_changed'
+  | 'overdue'
+  | 'deadline_reminder';
+
+/** 后端各类型通知 payload 的并集；按 type 取用对应字段。 */
+export interface NotificationPayload {
+  actor_id?: string;
+  actor_name?: string;
+  task_title?: string;
+  owner_id?: string;
+  owner_name?: string;
+  due_at?: string;
+  old_due_at?: string;
+  new_due_at?: string;
+  emoji?: string;
+  overdue_text?: string;
+  remain_text?: string;
+  people_count?: number;
+  times_count?: number;
+}
+
 export interface AppNotification {
   id: string;
   recipient_id: string;
-  type: string;
+  type: NotificationType;
   task_id: string | null;
-  payload: Record<string, unknown> | null;
+  payload: NotificationPayload | null;
   read: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Message {

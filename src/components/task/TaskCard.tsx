@@ -1,11 +1,17 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { deriveColor, COLOR_META } from '../../lib/deriveColor';
-import { canComplete, canDelay } from '../../lib/rbac';
-import { useCompleteTask, useDelayTask } from '../../hooks/queries/useTaskActions';
+import { canChangeDeadline, canComplete, canDelay } from '../../lib/rbac';
+import {
+  useChangeDeadline,
+  useCompleteTask,
+  useDelayTask,
+} from '../../hooks/queries/useTaskActions';
 import { UserAvatar } from '../common/UserAvatar';
 import { ReactionBar } from './ReactionBar';
 import { renderSimpleMarkdown } from '../../lib/markdown';
-import { daysOverdue, formatDateTime } from '../../lib/format';
+import { daysOverdue, formatDateTime, fromLocalInputValue, toLocalInputValue } from '../../lib/format';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
 import type { Profile, TaskWithRelations } from '../../types/database';
 
@@ -14,11 +20,14 @@ export function TaskCard({
   me,
   pinned,
   onTogglePin,
+  highlight,
 }: {
   task: TaskWithRelations;
   me: Profile;
   pinned?: boolean;
   onTogglePin?: () => void;
+  /** 通知点击跳转定位：显示闪烁高亮环。 */
+  highlight?: boolean;
 }) {
   const color = useMemo(
     () =>
@@ -37,15 +46,26 @@ export function TaskCard({
 
   const complete = useCompleteTask();
   const delay = useDelayTask();
+  const changeDeadline = useChangeDeadline();
+  const [deadlineOpen, setDeadlineOpen] = useState(false);
+  const [newDue, setNewDue] = useState('');
 
   const canCompleteTask = canComplete(task, me);
   const canDelayTask = canDelay(task, me);
+  const canChangeTaskDeadline = canChangeDeadline(task, me);
+
+  const openDeadlineModal = () => {
+    setNewDue(toLocalInputValue(task.due_at));
+    setDeadlineOpen(true);
+  };
 
   return (
     <div
+      id={`task-card-${task.id}`}
       className={cn(
         'relative flex flex-col rounded-2xl border border-black/5 bg-white p-4 shadow-sm',
         task.status === 'done' && 'opacity-70',
+        highlight && 'animate-pulse ring-2 ring-brand',
       )}
     >
       <span
@@ -129,10 +149,56 @@ export function TaskCard({
             我需要更多时间
           </button>
         )}
+        {canChangeTaskDeadline && (
+          <button
+            onClick={openDeadlineModal}
+            className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-black/5"
+          >
+            改截止
+          </button>
+        )}
         {task.status === 'done' && <span className="text-xs text-emerald-600">已完成</span>}
       </div>
 
       <ReactionBar task={task} />
+
+      <Modal
+        open={deadlineOpen}
+        onClose={() => setDeadlineOpen(false)}
+        title="调整截止日期"
+        subtitle={task.title}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeadlineOpen(false)}>
+              取消
+            </Button>
+            <Button
+              disabled={!newDue || changeDeadline.isPending}
+              onClick={() => {
+                changeDeadline.mutate(
+                  { taskId: task.id, newDueAt: fromLocalInputValue(newDue) },
+                  { onSuccess: () => setDeadlineOpen(false) },
+                );
+              }}
+            >
+              确认调整
+            </Button>
+          </>
+        }
+      >
+        <label className="block text-sm font-medium text-gray-700">
+          新截止日期
+          <input
+            type="datetime-local"
+            value={newDue}
+            onChange={(e) => setNewDue(e.target.value)}
+            className="tp-surface tp-border mt-1.5 h-11 w-full rounded-lg border px-3 text-sm"
+          />
+        </label>
+        <p className="mt-2 text-xs text-gray-400">
+          调整后任务负责人将收到含新旧日期对比的通知。
+        </p>
+      </Modal>
     </div>
   );
 }

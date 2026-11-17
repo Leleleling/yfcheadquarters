@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { deriveColor, COLOR_ORDER, COLOR_META } from '../lib/deriveColor';
@@ -15,6 +16,36 @@ export default function TaskWall() {
   const [cat, setCat] = useState<string>('all');
   const [scope, setScope] = useState<string>('all');
   const { pinned, isPinned, toggle } = usePinnedTasks();
+
+  // 通知点击跳转：/?focus=<taskId> → 清除筛选 → 滚动定位 → 高亮 3 秒
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get('focus');
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focusId) return;
+    setSearch('');
+    setCat('all');
+    setScope('all');
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries += 1;
+      const el = document.getElementById(`task-card-${focusId}`);
+      if (el) {
+        clearInterval(iv);
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightId(focusId);
+        setTimeout(() => setHighlightId(null), 3000);
+        const next = new URLSearchParams(searchParams);
+        next.delete('focus');
+        setSearchParams(next, { replace: true });
+      } else if (tries > 40) {
+        clearInterval(iv);
+      }
+    }, 100);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['tasks'],
@@ -206,6 +237,7 @@ export default function TaskWall() {
               me={profile}
               pinned={isPinned(task.id)}
               onTogglePin={() => toggle(task.id)}
+              highlight={highlightId === task.id}
             />
           ))}
         </div>

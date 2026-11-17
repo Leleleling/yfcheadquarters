@@ -24,3 +24,22 @@ export function daysOverdue(dueAt: string): number {
   const diff = Date.now() - new Date(dueAt).getTime();
   return Math.max(0, Math.floor(diff / 86_400_000));
 }
+
+/** ISO → <input type="datetime-local"> 的本地值（YYYY-MM-DDTHH:mm）。 */
+export function toLocalInputValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** 本地值 → ISO，用于提交给后端。 */
+export function fromLocalInputValue(local: string): string {
+  return new Date(local).toISOString();
+}
+
+/** 短日期（月日 时:分），用于通知文案。 */
+export function formatDueShort(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
